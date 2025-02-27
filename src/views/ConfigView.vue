@@ -4,6 +4,7 @@ import Eyes from "@/components/icons/Eyes.vue"
 import XEyes from "@/components/icons/XEyes.vue"
 
 const config = reactive({
+    accountId: "",
     bucketName: "",
     accessKey: "",
     secretAccessKey: "",
@@ -42,16 +43,16 @@ const removeConfig = () => {
             @submit.prevent="saveConfig"
         >
             <div class="space-y-1">
-                <label class="text-sm font-semibold block text-gray-600" for="bucketName"
-                    >Bucket Name</label
+                <label class="text-sm font-semibold block text-gray-600" for="accountId"
+                    >Account ID</label
                 >
                 <input
                     type="text"
                     class="w-full px-4 py-2 border border-gray-300 rounded-md"
                     required
-                    id="bucketName"
-                    v-model="config.bucketName"
-                    placeholder="my-bucket"
+                    id="accountId"
+                    v-model="config.accountId"
+                    placeholder="my-account-id"
                 />
             </div>
 
@@ -76,7 +77,7 @@ const removeConfig = () => {
                 <div class="relative">
                     <input
                         :type="showSecretKey ? 'text' : 'password'"
-                        class="w-full border border-gray-300 rounded-md px-4 py-2"
+                        class="w-full border border-gray-300 rounded-md pr-8 pl-4 py-2"
                         required
                         id="secretAccessKey"
                         v-model="config.secretAccessKey"
@@ -84,12 +85,26 @@ const removeConfig = () => {
                     />
                     <div
                         @click="showSecretKey = !showSecretKey"
-                        class="absolute hover:cursor-pointer hover:bg-zinc-200 rounded-full right-4 top-1/2 -translate-y-1/2 bg-white"
+                        class="absolute hover:cursor-pointer hover:bg-zinc-200 rounded-full right-2 top-1/2 -translate-y-1/2 bg-white"
                     >
                         <XEyes v-if="!showSecretKey" class="w-6 h-6 fill-zinc-600" />
                         <Eyes v-else class="w-6 h-6 fill-red-600" />
                     </div>
                 </div>
+            </div>
+
+            <div class="space-y-1">
+                <label class="text-sm font-semibold block text-gray-600" for="bucketName"
+                    >Bucket Name</label
+                >
+                <input
+                    type="text"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md"
+                    required
+                    id="bucketName"
+                    v-model="config.bucketName"
+                    placeholder="my-bucket"
+                />
             </div>
 
             <div class="space-y-1">
