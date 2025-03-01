@@ -4,7 +4,7 @@ import { RouterView } from "vue-router"
 </script>
 
 <template>
-    <div class="container m-auto">
+    <div class="container m-auto pb-[4rem]">
         <Controller />
         <RouterView />
     </div>

@@ -31,7 +31,7 @@ const removeConfig = () => {
     }
     console.log("hellow")
     localStorage.removeItem("config")
-    Object.assign(config, { bucketName: "", accessKey: "", secretAccessKey: "", publicURL: "" })
+    Object.assign(config, { accountId: "", bucketName: "", accessKey: "", secretAccessKey: "", publicURL: "" })
 }
 </script>
 

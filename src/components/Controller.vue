@@ -5,7 +5,6 @@ import ConfigIcon from "./icons/ConfigIcon.vue"
 import { useRoute, RouterLink } from "vue-router"
 
 const route = useRoute()
-console.log(route.path)
 </script>
 
 <template>

@@ -1,79 +1,76 @@
 <script setup>
 import TrashIcon from "@/components/icons/TrashIcon.vue"
+import ErrorIcon from "@/components/icons/ErrorIcon.vue"
+import CopyIcon from "@/components/icons/CopyIcon.vue"
 import { onMounted, reactive, ref } from "vue"
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
+import { useUploadFilesStore } from "@/stores/uploadfiles"
 
-const files = ref([])
+const files = useUploadFilesStore()
 const config = reactive({})
+const isUploading = ref(false)
 
 let R2_BUCKET_NAME = ""
 let R2_ENDPOINT = ""
 let R2_ACCESS_KEY_ID = ""
 let R2_SECRET_ACCESS_KEY = ""
 let R2_PUBLIC_URL = ""
+let r2
 
 onMounted(() => {
     Object.assign(config, JSON.parse(localStorage.getItem("config") || "{}"))
 
     R2_BUCKET_NAME = config.bucketName
-    R2_ENDPOINT = `https://${config.accountId}.r2.cloudflarestorage.com`;
+    R2_ENDPOINT = `https://${config.accountId}.r2.cloudflarestorage.com`
     R2_ACCESS_KEY_ID = config.accessKey
     R2_SECRET_ACCESS_KEY = config.secretAccessKey
     R2_PUBLIC_URL = config.publicURL
-})
 
-const r2 = new S3Client({
-    region: "auto",
-    endpoint: R2_ENDPOINT,
-    credentials: {
-        accessKeyId: R2_ACCESS_KEY_ID,
-        secretAccessKey: R2_SECRET_ACCESS_KEY,
-    },
+    r2 = new S3Client({
+        region: "auto",
+        endpoint: R2_ENDPOINT,
+        credentials: {
+            accessKeyId: R2_ACCESS_KEY_ID,
+            secretAccessKey: R2_SECRET_ACCESS_KEY,
+        },
+    })
 })
 
 const uploadFiles = async () => {
-    files.value.forEach(async (file) => {
-        const fileKey = 'f/${Date.now()}.${file.name.split(".").pop()}'
+    files.uploadFiles.forEach(async (file) => {
+        const data = file.data
+        const fileKey = `f/${crypto.randomUUID().replace(/-/g, "").substring(0, 12)}.${data.name.split(".").pop()}`
 
         const params = {
             Bucket: R2_BUCKET_NAME,
             Key: fileKey,
-            Body: file,
-            ContentType: file.type || "application/octet-stream",
+            Body: new Uint8Array(await data.arrayBuffer()), // convert file to byte array byte buffer
+            ContentType: data.type || "application/octet-stream",
         }
 
         try {
-            const response = await r2.send(new PutObjectCommand(params))
-            console.log(`${R2_PUBLIC_URL}/${fileKey}`);
+            await r2.send(new PutObjectCommand(params))
+            files.updateFileStatus(data.name, "uploaded", `${R2_PUBLIC_URL}/${fileKey}`)
         } catch (error) {
-            console.log(R2_BUCKET_NAME)
-            console.log(R2_ENDPOINT)
-            console.log(R2_ACCESS_KEY_ID)
-            console.log(R2_SECRET_ACCESS_KEY)
-            console.log(R2_PUBLIC_URL)
-            console.error(`ERROR: ${error}`)
+            files.updateFileStatus(data.name, error.toString())
         }
     })
 }
 
-const fileExists = (filename) => {
-    return files.value.some((file) => file.name === filename)
-}
-
-const addFiles = (newFiles) => {
-    files.value = [...files.value, ...[...newFiles].filter((file) => !fileExists(file.name))]
+const copyLink = (link) => {
+    navigator.clipboard.writeText(link)
 }
 
 const handleDrop = (e) => {
     e.preventDefault()
     const newFiles = e.dataTransfer.files
-    addFiles(newFiles)
+    files.addFiles(newFiles)
 }
 
 const handleFileSelect = (e) => {
     e.preventDefault()
     const newFiles = e.target.files
-    addFiles(newFiles)
+    files.addFiles(newFiles)
 }
 
 const handleDragOver = (e) => {
@@ -82,10 +79,6 @@ const handleDragOver = (e) => {
 
 const handleDragLeave = (e) => {
     e.preventDefault()
-}
-
-const removeFile = (idx) => {
-    files.value.splice(idx, 1)
 }
 </script>
 
@@ -106,30 +99,64 @@ const removeFile = (idx) => {
                 for="files"
                 >Select</label
             >
-            <input class="hidden" id="files" type="file" @change="handleFileSelect" multiple />
+            <input type="file" class="hidden" id="files" @change="handleFileSelect" multiple />
         </div>
     </div>
 
     <div class="flex flex-col justify-center items-center mt-10 font-brico">
-        <div v-if="files.length != 0" class="max-w-md w-full">
-            <ul class="max-h-128 space-y-2 overflow-auto border-gray-400">
+        <div v-if="files.uploadFiles.length != 0" class="max-w-3xl w-full p-6 rounded-lg shadow-lg">
+            <p class="text-base text-gray-500 pb-4">In Queue</p>
+            <ul class="p-2 max-h-128 space-y-2 overflow-scroll border-gray-400">
                 <li
-                    v-for="(file, index) in files"
-                    :key="file.name"
-                    class="flex items-center justify-between px-4 py-2 rounded-md shadow-md"
+                    v-for="(file, index) in files.uploadFiles"
+                    :key="file.data.name"
+                    class="flex flex-col p-4 rounded-md shadow-md"
                 >
-                    <p class="text-md font-normal text-gray-700">{{ file.name }}</p>
-                    <button type="text" class="font-bold" @click="removeFile(index)">
-                        <TrashIcon
-                            class="w-5 y-5 fill-gray-500 hover:fill-red-500 hover:cursor-pointer"
-                        />
-                    </button>
+                    <div class="flex justify-between items-center">
+                        <p class="text-md/4 font-normal text-gray-700">{{ file.data.name }}</p>
+                        <div class="flex items-center gap-2">
+                            <button
+                                v-if="file.status === 'uploaded' && file.link !== null"
+                                type="button"
+                                @click="copyLink(file.link)"
+                            >
+                                <CopyIcon
+                                    class="w-5 y-5 fill-gray-500 hover:fill-blue-400 hover:cursor-pointer"
+                                />
+                            </button>
+                            <button
+                                v-if="file.status === 'pending'"
+                                type="button"
+                                class="font-bold"
+                                @click="files.removeFile(index)"
+                            >
+                                <TrashIcon
+                                    class="w-5 y-5 fill-gray-500 hover:fill-red-500 hover:cursor-pointer"
+                                />
+                            </button>
+                            <button
+                                v-if="file.status.toLowerCase().includes('error')"
+                                @click="file.showError = !file.showError"
+                            >
+                                <ErrorIcon
+                                    class="w-5 h-5 fill-red-600 hover:cursor-pointer hover:fill-red-500 hover:bg-red-200 rounded-full"
+                                />
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        v-if="file.showError"
+                        class="font-inter mt-2 transition-all duration-300 text-red-500 rounded-md bg-gray-200 w-full p-4"
+                    >
+                        {{ file.status }}
+                    </div>
                 </li>
             </ul>
 
-            <div class="flex justify-end mt-4 gap-2">
+            <div v-if="!isUploading" class="flex justify-end mt-4 gap-2">
                 <button
                     type="button"
+                    :disabled="isUploading"
                     class="text-semibold hover:cursor-pointer hover:bg-emerald-400 bg-emerald-500 rounded-md px-4 py-2"
                     @click="uploadFiles"
                 >
@@ -137,13 +164,14 @@ const removeFile = (idx) => {
                 </button>
                 <button
                     class="text-semibold hover:cursor-pointer hover:bg-gray-200 rounded-md px-4 py-2"
-                    @click="files.value = files.splice(0, files.length)"
+                    :disabled="isUploading"
+                    @click="files.clearQueue"
                 >
                     Clear
                 </button>
             </div>
         </div>
-        <p v-else class="text-gray-500 text-sm font-inter">
+        <p v-else class="text-gray-500 text-sm font-brico">
             no files, drop some or select to upload
         </p>
     </div>
