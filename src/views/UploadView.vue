@@ -2,6 +2,8 @@
 import TrashIcon from "@/components/icons/TrashIcon.vue"
 import ErrorIcon from "@/components/icons/ErrorIcon.vue"
 import CopyIcon from "@/components/icons/CopyIcon.vue"
+import LoadingIcon from "@/components/icons/LoadingIcon.vue"
+import TickIcon from "@/components/icons/TickIcon.vue"
 import { onMounted, reactive, ref } from "vue"
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
 import { useUploadFilesStore } from "@/stores/uploadfiles"
@@ -37,6 +39,7 @@ onMounted(() => {
 })
 
 const uploadFiles = async () => {
+    isUploading.value = true
     files.uploadFiles.forEach(async (file) => {
         const data = file.data
         const fileKey = `f/${crypto.randomUUID().replace(/-/g, "").substring(0, 12)}.${data.name.split(".").pop()}`
@@ -49,12 +52,14 @@ const uploadFiles = async () => {
         }
 
         try {
+            files.updateFileStatus(data.name, "uploading", `${R2_PUBLIC_URL}/${fileKey}`)
             await r2.send(new PutObjectCommand(params))
             files.updateFileStatus(data.name, "uploaded", `${R2_PUBLIC_URL}/${fileKey}`)
         } catch (error) {
             files.updateFileStatus(data.name, error.toString())
         }
     })
+    isUploading.value = false
 }
 
 const copyLink = (link) => {
@@ -118,7 +123,7 @@ const handleDragLeave = (e) => {
                             <button
                                 v-if="file.status === 'uploaded' && file.link !== null"
                                 type="button"
-                                @click="copyLink(file.link)"
+                                @click="copyLink(file.link); files.removeFile(index)"
                             >
                                 <CopyIcon
                                     class="w-5 y-5 fill-gray-500 hover:fill-blue-400 hover:cursor-pointer"
@@ -142,10 +147,12 @@ const handleDragLeave = (e) => {
                                     class="w-5 h-5 fill-red-600 hover:cursor-pointer hover:fill-red-500 hover:bg-red-200 rounded-full"
                                 />
                             </button>
+                            <LoadingIcon v-if="file.status === 'uploading'" />
+                            <TickIcon v-if="file.status === 'uploaded'" />
                         </div>
                     </div>
                     <div
-                        v-if="file.showError"
+                        v-if="file.showError && file.status.toLowerCase().includes('error')"
                         class="font-inter mt-2 transition-all duration-300 text-red-500 rounded-md bg-gray-200 w-full p-4"
                     >
                         {{ file.status }}
