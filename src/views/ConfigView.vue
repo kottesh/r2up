@@ -39,7 +39,7 @@ const removeConfig = () => {
   <div class="flex flex-col">
       <h1 class="self-start pb-16 font-lora text-3xl text-zinc-600 font-semibold">Config.</h1>
       <form
-          class="self-end p-10 flex flex-col gap-3 max-w-md lg:max-w-xl h-auto w-full border-2 border-dashed border-emerald-300 shadow-lg rounded-lg bg-white-200"
+          class="self-end p-10 flex flex-col gap-3 max-w-md lg:max-w-xl h-auto w-full border-2 border-dashed border-emerald-300 shadow-2xl rounded-lg bg-white-200"
           @submit.prevent="saveConfig"
       >
           <div class="space-y-1">

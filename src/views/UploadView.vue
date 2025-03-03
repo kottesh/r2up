@@ -88,14 +88,14 @@ const handleDragLeave = (e) => {
 </script>
 
 <template>
-    <h1 class="pt-6 font-lora text-3xl font-semibold text-gray-600">Upload.</h1>
+    <h1 class="font-lora text-3xl font-semibold text-gray-600">Upload.</h1>
 
     <div class="flex-grow flex flex-col items-center mt-[4rem] font-brico">
         <div
             @dragover="handleDragOver"
             @dragleave="handleDragLeave"
             @drop="handleDrop"
-            class="p-6 flex flex-col max-w-md w-full border-dashed border-2 rounded-md shadow-lg border-emerald-400 gap-2"
+            class="p-6 flex flex-col max-w-md w-full border-dashed border-2 rounded-md shadow-2xl border-emerald-400 gap-2"
         >
             <p class="text-center font-semibold text-2xl text-gray-700">Drag & Drop</p>
             <p class="text-center italic text-xl text-gray-600">or</p>

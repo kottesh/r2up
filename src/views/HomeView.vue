@@ -31,7 +31,7 @@ const copyLink = (link) => {
         <div
             v-for="file in fileStore.files"
             :key="file.key"
-            class="mb-4 overflow-hidden relative group shadow-lg"
+            class="mb-4 overflow-hidden relative group shadow-xl rounded-2xl"
         >
             <img
                 v-if="file.isImage"
